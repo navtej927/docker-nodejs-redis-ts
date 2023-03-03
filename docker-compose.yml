@@ -4,12 +4,17 @@ services:
     build: ./frontend
     volumes:
       - ./frontend/src:/usr/src/app/src
+      - /usr/src/app/src/node_modules
     command: npm run start
+    depends_on:
+        - placeholder-api
 
   placeholder-api:
     build: ./placeholder-api
     environment:
       - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
     volumes:
       - ./placeholder-api/src:/usr/src/app/src
     command: npm run dev
@@ -21,14 +26,12 @@ services:
       - '6379:6379'
 
   nginx:
-    image: nginx
+    image: nginx:alpine
     ports:
       - 1234:80
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-
-  # mongo:
-  #   image: mongo
-  #   environment:
-  #     - MONGO_INITDB_ROOT_USERNAME=nav
-  #     - MONGO_INITDB_ROOT_PASSWORD=1234
+    depends_on:
+      - frontend
+      - placeholder-api
+      - redis

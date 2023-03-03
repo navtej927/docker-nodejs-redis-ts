@@ -1,12 +1,14 @@
 import express, { Express, Request, Response } from "express";
 import { createClient } from "redis";
-import morgan from 'morgan';
+import morgan from "morgan";
 
 const PORT = process.env.port || 1235;
 
 const app: Express = express();
 
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms")
+);
 
 const redisClient = createClient({
   url: process.env.REDIS_URL,
@@ -34,8 +36,28 @@ app.get("/api/todos", async (_req: Request, res: Response) => {
       res.json({ data: data, cache: false });
     }
   } catch (error) {
-    console.log(error)
-    res.send(error)
+    console.log(error);
+    res.send(error);
+  }
+});
+
+app.get("/api/todo/:id", async (_req: Request, res: Response) => {
+  try {
+    const { id } = _req.params;
+    console.log("idididididid", id)
+    const cachedData = await redisClient.get(`todo-${id}`);
+    if (cachedData) {
+      res.json({ data: JSON.parse(cachedData), cache: true });
+    } else {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/todos/${id}`
+      );
+      const data = await response.json();
+      redisClient.set(`todo-${id}`, JSON.stringify(data));
+      res.json({ data: data, cache: false });
+    }
+  } catch (error) {
+    res.send(error);
   }
 });
 
